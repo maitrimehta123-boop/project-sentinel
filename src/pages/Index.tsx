@@ -67,19 +67,6 @@ const Index = () => {
               transition={{ duration: 0.8, delay: 0.1 }}
               className="relative"
             >
-              {/* Transparent brand mark — no panel/box behind it. */}
-              <div className="relative aspect-square max-w-lg mx-auto flex items-center justify-center">
-                <img
-                  src={logo}
-                  alt="Astro With Hrishi — premium astrology products"
-                  width={555}
-                  height={780}
-                  fetchPriority="high"
-                  decoding="sync"
-                  className="relative h-[78%] w-auto object-contain animate-float select-none pointer-events-none"
-                />
-              </div>
-
               <HeroBraceletStrip />
 
             </motion.div>
