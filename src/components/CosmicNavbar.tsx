@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, NavLink as RRNavLink, useLocation, useNavigate } from "react-router-dom";
-import { Menu, X, Search, ShoppingBag, User, LogOut, Package, Truck } from "lucide-react";
+import { Menu, X, Search, ShoppingBag, User, LogOut, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
