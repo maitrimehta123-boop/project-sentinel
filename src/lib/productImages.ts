@@ -83,11 +83,11 @@ const EXTRA_VIEWS: Record<string, string[]> = {
   "1000212764": ["/assets/products/1000212764-a.jpg", "/assets/products/1000212764-b.jpg"],
   "1000212766": ["/assets/products/1000212766-a.jpg", "/assets/products/1000212766-b.jpg"],
   "1000212768": ["/assets/products/1000212768-a.jpg", "/assets/products/1000212768-b.jpg"],
-  "1000212775": ["/assets/products/1000212775 copy.jpg", "/assets/products/1000212775-a.jpg"],
-  "1000212777": ["/assets/products/1000212777 copy.jpg", "/assets/products/1000212777-a.jpg"],
-  "1000212779": ["/assets/products/1000212779 copy.jpg", "/assets/products/1000212779-a.jpg"],
-  "1000212781": ["/assets/products/1000212781 copy.jpg", "/assets/products/1000212781-a.jpg"],
-  "1000212783": ["/assets/products/1000212783 copy.jpg", "/assets/products/1000212783-a.jpg"],
+  "1000212775": ["/assets/products/1000212775%20copy.jpg", "/assets/products/1000212775-a.jpg"],
+  "1000212777": ["/assets/products/1000212777%20copy.jpg", "/assets/products/1000212777-a.jpg"],
+  "1000212779": ["/assets/products/1000212779%20copy.jpg", "/assets/products/1000212779-a.jpg"],
+  "1000212781": ["/assets/products/1000212781%20copy.jpg", "/assets/products/1000212781-a.jpg"],
+  "1000212783": ["/assets/products/1000212783%20copy.jpg", "/assets/products/1000212783-a.jpg"],
 };
 
 const catalogKey = (ref?: string | null) => {
@@ -103,7 +103,7 @@ export const resolveImages = (product: {
 }): string[] => {
   const list = (product.images ?? []).filter(Boolean);
   const all = list.length ? list : product.image_url ? [product.image_url] : [];
-  const resolved = all.map(resolveImage);
+  const resolved = Array.from(new Set(all.map(resolveImage)));
   if (product.id !== "trishield-bracelet") {
     const key = catalogKey(all[0] ?? product.image_url);
     for (const extra of (key && EXTRA_VIEWS[key]) || []) {
