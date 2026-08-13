@@ -137,9 +137,9 @@ const CosmicNavbar = () => {
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link to="/track-order" className="flex items-center gap-2 cursor-pointer">
-                    <Truck className="h-4 w-4" />
-                    Track Order
+                  <Link to="/orders" className="flex items-center gap-2 cursor-pointer">
+                    <Package className="h-4 w-4" />
+                    My Orders
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
@@ -202,9 +202,6 @@ const CosmicNavbar = () => {
                 </Link>
                 <Link to="/orders" className="block text-sm uppercase tracking-[0.14em] text-foreground/80 hover:text-gold">
                   My Orders
-                </Link>
-                <Link to="/track-order" className="block text-sm uppercase tracking-[0.14em] text-foreground/80 hover:text-gold">
-                  Track Order
                 </Link>
                 <button
                   onClick={handleSignOut}
