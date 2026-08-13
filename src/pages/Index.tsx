@@ -4,6 +4,7 @@ import { ArrowRight, ShieldCheck, Sparkles, Truck, BadgeCheck, Star } from "luci
 import PageLayout from "@/components/PageLayout";
 import SEO from "@/components/SEO";
 import SplashLoader from "@/components/SplashLoader";
+import HeroBraceletStrip from "@/components/HeroBraceletStrip";
 import { Button } from "@/components/ui/button";
 import { useProducts } from "@/hooks/useProducts";
 import { resolveImages } from "@/lib/productImages";
@@ -78,6 +79,8 @@ const Index = () => {
                   className="relative h-[78%] w-auto object-contain animate-float select-none pointer-events-none"
                 />
               </div>
+
+              <HeroBraceletStrip />
 
             </motion.div>
           </div>
