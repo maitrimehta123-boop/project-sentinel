@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { lineKey, useCart } from "@/lib/cart";
-import { resolveImages } from "@/lib/productImages";
+import { resolveImages, handleImageError } from "@/lib/productImages";
 import { deliveryEstimate, inr, mrpOf, type DBProduct } from "@/lib/shop";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -76,7 +76,7 @@ const ProductDetail = ({
     product_id: product.id,
     name: product.name,
     price: Number(product.price),
-    image_url: product.image_url,
+    image_url: images[0],
     variant,
   };
 
@@ -144,6 +144,7 @@ const ProductDetail = ({
               <img
                 src={images[active]}
                 alt={product.name}
+                onError={handleImageError}
                 className="w-full h-full object-cover"
               />
               {product.discount_percent > 0 && (
@@ -163,7 +164,7 @@ const ProductDetail = ({
                       i === active ? "border-gold" : "border-gold/20"
                     )}
                   >
-                    <img src={src} alt="" className="h-full w-full object-cover" />
+                    <img src={src} alt="" onError={handleImageError} className="h-full w-full object-cover" />
                   </button>
                 ))}
               </div>
@@ -314,7 +315,7 @@ const ProductDetail = ({
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {related.map((p) => (
                 <button key={p.id} onClick={() => onOpenProduct(p)} className="glass-gold rounded-xl overflow-hidden text-left hover:border-gold transition-colors">
-                  <img src={resolveImages(p)[0]} alt={p.name} loading="lazy" className="w-full aspect-square object-cover" />
+                  <img src={resolveImages(p)[0]} alt={p.name} loading="lazy" onError={handleImageError} className="w-full aspect-square object-cover" />
                   <div className="p-2">
                     <div className="text-xs text-cosmic-silver line-clamp-2">{p.name}</div>
                     <div className="text-xs text-gold font-semibold mt-1">{inr(Number(p.price))}</div>
@@ -330,3 +331,4 @@ const ProductDetail = ({
 };
 
 export default ProductDetail;
+
