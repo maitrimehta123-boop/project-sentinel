@@ -136,12 +136,6 @@ const CosmicNavbar = () => {
                     My Orders
                   </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/orders" className="flex items-center gap-2 cursor-pointer">
-                    <Package className="h-4 w-4" />
-                    My Orders
-                  </Link>
-                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   onClick={handleSignOut}
