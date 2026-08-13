@@ -72,9 +72,43 @@ export const resolveImage = (ref?: string | null): string => {
 };
 
 
-export const resolveImages = (product: { image_url?: string | null; images?: string[] | null }): string[] => {
+/**
+ * Extra photo angles (close-up views of the same product photo) shown in the
+ * product gallery. Keyed by the numeric catalog id found in the main image name.
+ * The Trishield Bracelet is intentionally excluded — it already has its own set.
+ */
+const EXTRA_VIEWS: Record<string, string[]> = {
+  "1000212756": ["/assets/products/1000212756-a.jpg", "/assets/products/1000212756-b.jpg"],
+  "1000212762": ["/assets/products/1000212762-a.jpg", "/assets/products/1000212762-b.jpg"],
+  "1000212764": ["/assets/products/1000212764-a.jpg", "/assets/products/1000212764-b.jpg"],
+  "1000212766": ["/assets/products/1000212766-a.jpg", "/assets/products/1000212766-b.jpg"],
+  "1000212768": ["/assets/products/1000212768-a.jpg", "/assets/products/1000212768-b.jpg"],
+  "1000212775": ["/assets/products/1000212775 copy.jpg", "/assets/products/1000212775-a.jpg"],
+  "1000212777": ["/assets/products/1000212777 copy.jpg", "/assets/products/1000212777-a.jpg"],
+  "1000212779": ["/assets/products/1000212779 copy.jpg", "/assets/products/1000212779-a.jpg"],
+  "1000212781": ["/assets/products/1000212781 copy.jpg", "/assets/products/1000212781-a.jpg"],
+  "1000212783": ["/assets/products/1000212783 copy.jpg", "/assets/products/1000212783-a.jpg"],
+};
+
+const catalogKey = (ref?: string | null) => {
+  if (!ref) return null;
+  const fileName = ref.split("?")[0].split("/").pop() ?? "";
+  return fileName.match(/\d{6,}/)?.[0] ?? null;
+};
+
+export const resolveImages = (product: {
+  id?: string;
+  image_url?: string | null;
+  images?: string[] | null;
+}): string[] => {
   const list = (product.images ?? []).filter(Boolean);
   const all = list.length ? list : product.image_url ? [product.image_url] : [];
   const resolved = all.map(resolveImage);
+  if (product.id !== "trishield-bracelet") {
+    const key = catalogKey(all[0] ?? product.image_url);
+    for (const extra of (key && EXTRA_VIEWS[key]) || []) {
+      if (!resolved.includes(extra)) resolved.push(extra);
+    }
+  }
   return resolved.length ? resolved : [placeholder];
 };
