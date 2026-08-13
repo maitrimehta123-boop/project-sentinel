@@ -1,0 +1,44 @@
+[build]
+command = "npm run build"
+publish = "dist"
+functions = "netlify/functions"
+
+[[redirects]]
+from = "/*"
+to = "/index.html"
+status = 200
+
+[build.environment]
+NODE_VERSION = "20"
+
+# Backend — these are public anon-key values safe to embed in the client bundle.
+VITE_SUPABASE_URL = "https://wnahypswfodlposxvlkp.supabase.co"
+VITE_SUPABASE_PROJECT_ID = "wnahypswfodlposxvlkp"
+VITE_SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InduYWh5cHN3Zm9kbHBvc3h2bGtwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEzMjQ3MjEsImV4cCI6MjA5NjkwMDcyMX0.DomWj1cUojzLsCN3js4BmKl3OkqROBxIp7MbRmwGOfo"
+VITE_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InduYWh5cHN3Zm9kbHBvc3h2bGtwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEzMjQ3MjEsImV4cCI6MjA5NjkwMDcyMX0.DomWj1cUojzLsCN3js4BmKl3OkqROBxIp7MbRmwGOfo"
+
+# No Razorpay keys here. The Key ID is served by the backend function and the
+# Key Secret exists only as a server-side secret — never in the client bundle.
+
+
+[[headers]]
+for = "/assets/*"
+[headers.values]
+Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+for = "/*.js"
+[headers.values]
+Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+for = "/*.css"
+[headers.values]
+Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+for = "/*"
+[headers.values]
+X-Frame-Options = "DENY"
+X-Content-Type-Options = "nosniff"
+X-XSS-Protection = "1; mode=block"

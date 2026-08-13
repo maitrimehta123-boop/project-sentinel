@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" width="800" height="1000" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2a1f4d"/>
+      <stop offset="60%" stop-color="#0d0a1f"/>
+      <stop offset="100%" stop-color="#050410"/>
+    </linearGradient>
+    <radialGradient id="halo" cx="50%" cy="40%" r="50%">
+      <stop offset="0%" stop-color="#d4af37" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#d4af37" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="robe" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#3b2a6b"/>
+      <stop offset="100%" stop-color="#1a1230"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="1000" fill="url(#bg)"/>
+  <rect width="800" height="1000" fill="url(#halo)"/>
+  <g>
+    <ellipse cx="400" cy="780" rx="220" ry="180" fill="url(#robe)"/>
+    <path d="M 250 780 Q 400 720 550 780 L 560 1000 L 240 1000 Z" fill="url(#robe)" opacity="0.9"/>
+    <circle cx="400" cy="360" r="130" fill="#e8c9a0" opacity="0.85"/>
+    <ellipse cx="400" cy="520" rx="110" ry="60" fill="#e8c9a0" opacity="0.85"/>
+    <path d="M 290 330 Q 400 230 510 330 Q 520 280 500 240 Q 400 180 300 240 Q 280 280 290 330 Z" fill="#2a1f1a" opacity="0.9"/>
+    <g fill="#d4af37" opacity="0.6">
+      <circle cx="400" cy="380" r="3"/>
+      <circle cx="370" cy="370" r="2"/>
+      <circle cx="430" cy="370" r="2"/>
+    </g>
+  </g>
+  <g fill="#f5e7b8" opacity="0.7">
+    <circle cx="100" cy="120" r="1.5"/>
+    <circle cx="220" cy="80" r="1"/>
+    <circle cx="650" cy="150" r="2"/>
+    <circle cx="720" cy="60" r="1"/>
+    <circle cx="150" cy="300" r="1.5"/>
+    <circle cx="680" cy="400" r="1"/>
+    <circle cx="80" cy="500" r="2"/>
+    <circle cx="720" cy="600" r="1.5"/>
+  </g>
+</svg>
