@@ -253,6 +253,23 @@
   animation: shimmer 3s linear infinite;
 }
 
+/* Continuous auto-scrolling strip (hero bracelet showcase) */
+@keyframes marquee-x {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+.animate-marquee-x {
+  animation: marquee-x 26s linear infinite;
+  will-change: transform;
+}
+
+.animate-marquee-x:hover { animation-play-state: paused; }
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-marquee-x { animation: none; }
+}
+
 /* Hide Google Translate banner */
 .goog-te-banner-frame.skiptranslate,
 .goog-te-gadget,
