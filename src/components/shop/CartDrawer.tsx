@@ -1,6 +1,7 @@
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/lib/cart";
+import { handleImageError } from "@/lib/productImages";
 import { Minus, Plus, Trash2, ShoppingBag, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -48,7 +49,7 @@ const CartDrawer = ({ open, onOpenChange }: { open: boolean; onOpenChange: (o: b
                     exit={{ opacity: 0, x: 40 }}
                     className="flex gap-3 p-3 rounded-xl glass-gold"
                   >
-                    {i.image_url && <img src={i.image_url} alt={i.name} className="h-16 w-16 rounded-lg object-cover" />}
+                    {i.image_url && <img src={i.image_url} alt={i.name} onError={handleImageError} className="h-16 w-16 rounded-lg object-cover" />}
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-semibold text-cosmic-silver line-clamp-1">{i.name}</div>
                       <div className="text-xs text-gold mt-0.5">₹{i.price.toLocaleString("en-IN")}</div>
