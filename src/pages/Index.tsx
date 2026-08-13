@@ -9,8 +9,6 @@ import { Button } from "@/components/ui/button";
 import { useProducts } from "@/hooks/useProducts";
 import { resolveImages } from "@/lib/productImages";
 import { inr, mrpOf } from "@/lib/shop";
-const logo = "/assets/brand-logo.png";
-
 const FEATURES = [
   { Icon: BadgeCheck, title: "100% Authentic", text: "Natural, lab-checked crystals and genuine Vedic remedy materials." },
   { Icon: Sparkles, title: "Energised & Blessed", text: "Every product is purified and energised before it is dispatched." },
