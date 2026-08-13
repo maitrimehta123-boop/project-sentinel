@@ -72,10 +72,16 @@ const Auth = () => {
       if (msg.includes("already") || msg.includes("registered")) {
         return toast.error("This email is already registered. Please login.");
       }
+      if (msg.includes("weak") || msg.includes("pwned")) {
+        return toast.error("This password is too common. Please choose a stronger password.");
+      }
+      if (msg.includes("rate limit") || msg.includes("too many")) {
+        return toast.error("Too many attempts. Please wait a minute and try again.");
+      }
       return toast.error(error.message);
     }
 
-    if (data.user) {
+    if (data.user && data.session) {
       // Update profile with name and phone (trigger creates base profile)
       await supabase
         .from("profiles")
@@ -84,6 +90,13 @@ const Auth = () => {
     }
 
     setBusy(false);
+
+    // Email confirmation enabled → no session is returned; tell the user instead
+    // of sending them to a page that still treats them as signed out.
+    if (!data.session) {
+      return toast.success("Account created! Please confirm your email, then log in.");
+    }
+
     toast.success(`Account created! Welcome ${reg.full_name.trim().split(" ")[0]} 🎉`);
     nav(redirectTo);
   };

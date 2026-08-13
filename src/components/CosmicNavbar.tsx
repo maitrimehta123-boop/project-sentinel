@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, NavLink as RRNavLink, useLocation, useNavigate } from "react-router-dom";
-import { Menu, X, Search, ShoppingBag, User, LogOut, Package, Truck } from "lucide-react";
+import { Menu, X, Search, ShoppingBag, User, LogOut, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -136,12 +136,6 @@ const CosmicNavbar = () => {
                     My Orders
                   </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/track-order" className="flex items-center gap-2 cursor-pointer">
-                    <Truck className="h-4 w-4" />
-                    Track Order
-                  </Link>
-                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   onClick={handleSignOut}
@@ -202,9 +196,6 @@ const CosmicNavbar = () => {
                 </Link>
                 <Link to="/orders" className="block text-sm uppercase tracking-[0.14em] text-foreground/80 hover:text-gold">
                   My Orders
-                </Link>
-                <Link to="/track-order" className="block text-sm uppercase tracking-[0.14em] text-foreground/80 hover:text-gold">
-                  Track Order
                 </Link>
                 <button
                   onClick={handleSignOut}

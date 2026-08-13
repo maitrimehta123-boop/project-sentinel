@@ -19,10 +19,10 @@ const fromEnvFile = (key: string): string | undefined => {
 
 const envVar = (key: string) => process.env[key] || fromEnvFile(key);
 
-const SUPABASE_URL = envVar("VITE_SUPABASE_URL") ?? "https://wnahypswfodlposxvlkp.supabase.co";
+const SUPABASE_URL = envVar("VITE_SUPABASE_URL") ?? "https://lzfcquqtsxkemodhbyqh.supabase.co";
 // Publishable anon key — same value the browser bundle already ships.
 const ANON_FALLBACK =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InduYWh5cHN3Zm9kbHBvc3h2bGtwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEzMjQ3MjEsImV4cCI6MjA5NjkwMDcyMX0.DomWj1cUojzLsCN3js4BmKl3OkqROBxIp7MbRmwGOfo";
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx6ZmNxdXF0c3hrZW1vZGhieXFoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU2NDIwODksImV4cCI6MjEwMTIxODA4OX0._KGjh1D8w216PVdnG_csbsA015twT9erbkBAYhrGcCQ";
 const SUPABASE_KEY =
   envVar("VITE_SUPABASE_PUBLISHABLE_KEY") ?? envVar("VITE_SUPABASE_ANON_KEY") ?? ANON_FALLBACK;
 

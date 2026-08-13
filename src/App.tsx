@@ -24,7 +24,6 @@ const Auth = lazy(() => import("./pages/Auth"));
 const Admin = lazy(() => import("./pages/Admin"));
 const AdminLogin = lazy(() => import("./pages/AdminLogin"));
 const Orders = lazy(() => import("./pages/Orders"));
-const TrackOrder = lazy(() => import("./pages/TrackOrder"));
 const Checkout = lazy(() => import("./pages/Checkout"));
 
 const queryClient = new QueryClient();
@@ -56,7 +55,6 @@ const App = () => (
               <Route path="/terms" element={<Terms />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/orders" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
-              <Route path="/track-order" element={<ProtectedRoute><TrackOrder /></ProtectedRoute>} />
               <Route path="/admin/login" element={<AdminLogin />} />
               <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
               <Route path="*" element={<NotFound />} />
