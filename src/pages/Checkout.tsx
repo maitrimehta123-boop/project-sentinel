@@ -326,11 +326,14 @@ const Checkout = () => {
           </p>
 
           <div className="flex gap-3 justify-center">
+            <Button
+              onClick={() => nav(`/track-order?order=${encodeURIComponent(orderNumber ?? "")}`)}
+              className="bg-gradient-gold text-primary-foreground"
+            >
+              Track Your Order
+            </Button>
             <Button onClick={() => nav("/shop")} className="bg-gradient-gold text-primary-foreground">
               Continue Shopping
-            </Button>
-            <Button variant="outline" onClick={() => nav("/")} className="border-gold/40 text-gold">
-              Back to Home
             </Button>
           </div>
         </div>

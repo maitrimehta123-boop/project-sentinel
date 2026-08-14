@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Trash2, Download, Upload, Star, Plus, X } from "lucide-react";
+import OrdersDashboard from "@/components/admin/OrdersDashboard";
+import OrderManager from "@/components/admin/OrderManager";
 
 /* ─── shared helpers ─── */
 
@@ -73,7 +75,7 @@ const Admin = () => {
           </TabsList>
           <TabsContent value="appointments"><AppointmentsTab /></TabsContent>
           <TabsContent value="shop"><ProductsTab /></TabsContent>
-          <TabsContent value="orders"><OrdersTab /></TabsContent>
+          <TabsContent value="orders"><OrdersDashboard /><OrderManager /></TabsContent>
           <TabsContent value="leads"><LeadsTab /></TabsContent>
           <TabsContent value="testimonials"><TestimonialsTab /></TabsContent>
           <TabsContent value="offers"><OffersTab /></TabsContent>
