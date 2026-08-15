@@ -17,6 +17,7 @@ const logo = "/assets/brand-logo.png";
 const LINKS = [
   { label: "Home", to: "/" },
   { label: "Shop", to: "/shop" },
+  { label: "Track Order", to: "/track-order" },
   { label: "About", to: "/about" },
   { label: "Contact", to: "/contact" },
 ];
