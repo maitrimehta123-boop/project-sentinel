@@ -166,6 +166,7 @@ const ProductsTab = () => {
   const [f, setF] = useState({ name: "", description: "", price: "", image_url: "", category: "", stock: "100", discount_percent: "0", rating: "4.7" });
   const [imagePreview, setImagePreview] = useState("");
   const [gallery, setGallery] = useState<string[]>([]);
+  const [editing, setEditing] = useState<any | null>(null);
 
   const create = async () => {
     if (!f.name || !f.price) return toast.error("Name and price required");
@@ -250,10 +251,14 @@ const ProductsTab = () => {
                 <Input defaultValue={p.rating ?? 4.7} type="number" step="0.1" onBlur={(e) => Number(e.target.value) !== Number(p.rating) && patch(p.id, { rating: Math.min(4.8, Number(e.target.value)) })} className={`h-8 text-xs ${inputCls}`} aria-label="Rating" />
               </div>
             </div>
-            <button onClick={() => del(p.id)} className="text-destructive"><Trash2 className="h-4 w-4" /></button>
+            <div className="flex flex-col gap-2">
+              <button onClick={() => setEditing(p)} aria-label="Edit product" className="text-gold"><Pencil className="h-4 w-4" /></button>
+              <button onClick={() => del(p.id)} aria-label="Delete product" className="text-destructive"><Trash2 className="h-4 w-4" /></button>
+            </div>
           </div>
         ))}
       </div>
+      <ProductEditDialog product={editing} onClose={() => setEditing(null)} onSaved={reload} />
     </>
   );
 };
