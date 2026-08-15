@@ -6,9 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Trash2, Download, Upload, Star, Plus, X } from "lucide-react";
-import OrdersDashboard from "@/components/admin/OrdersDashboard";
-import OrderManager from "@/components/admin/OrderManager";
+import { Link } from "react-router-dom";
+import { Trash2, Download, Upload, Star, Plus, X, Pencil, Truck } from "lucide-react";
+import ProductEditDialog from "@/components/admin/ProductEditDialog";
 
 /* ─── shared helpers ─── */
 
@@ -69,14 +69,13 @@ const Admin = () => {
         <StatsOverview />
         <Tabs defaultValue="appointments" className="w-full mt-6">
           <TabsList className="glass-gold flex-wrap h-auto justify-start">
-            {["appointments", "shop", "orders", "leads", "testimonials", "offers", "messages", "customers"].map((t) => (
+            {["appointments", "shop", "orders", "testimonials", "offers", "messages", "customers"].map((t) => (
               <TabsTrigger key={t} value={t} className="capitalize data-[state=active]:bg-gradient-gold data-[state=active]:text-primary-foreground">{t}</TabsTrigger>
             ))}
           </TabsList>
           <TabsContent value="appointments"><AppointmentsTab /></TabsContent>
           <TabsContent value="shop"><ProductsTab /></TabsContent>
-          <TabsContent value="orders"><OrdersDashboard /><OrderManager /></TabsContent>
-          <TabsContent value="leads"><LeadsTab /></TabsContent>
+          <TabsContent value="orders"><OrdersTab /></TabsContent>
           <TabsContent value="testimonials"><TestimonialsTab /></TabsContent>
           <TabsContent value="offers"><OffersTab /></TabsContent>
           <TabsContent value="messages"><MessagesTab /></TabsContent>
@@ -147,104 +146,18 @@ const AppointmentsTab = () => {
 
 /* ─── orders ─── */
 
-const OrdersTab = () => {
-  const [list, reload] = useList("orders");
-  const [q, setQ] = useState("");
-  const shown = list.filter((o) => {
-    const t = q.trim().toLowerCase();
-    if (!t) return true;
-    return [o.order_number, o.id, o.customer_name, o.customer_email, o.customer_phone, o.status]
-      .some((v) => String(v ?? "").toLowerCase().includes(t));
-  });
-  return (
-    <div className="space-y-3 mt-6">
-      <Input
-        placeholder="Search by order number, name, email, phone or status"
-        value={q}
-        onChange={(e) => setQ(e.target.value)}
-        className={inputCls}
-      />
-      {shown.length === 0 && <div className="text-center text-cosmic-silver/60 py-8">No shop orders yet</div>}
-      {shown.map((o) => (
-        <div key={o.id} className="glass-gold rounded-2xl p-4">
-          <div className="flex justify-between">
-            <div>
-              <div className="font-display text-gold">{o.customer_name || "Customer"}</div>
-              <div className="text-xs text-cosmic-silver/70">{o.customer_phone} • {o.customer_email}</div>
-              <div className="text-[11px] text-cosmic-silver/50 mt-0.5">Order: {o.order_number || o.id}</div>
-            </div>
-            <div className="text-right">
-              <div className="text-gold font-semibold">₹{Number(o.total || 0).toLocaleString("en-IN")}</div>
-              <div className="text-xs text-cosmic-silver/60">{new Date(o.created_at).toLocaleString()}</div>
-              <div className="text-[11px] text-cosmic-silver/60">Payment: {o.payment_status || "pending"}</div>
-            </div>
-          </div>
-          {Array.isArray(o.items) && o.items.length > 0 && (
-            <div className="text-xs text-cosmic-silver/70 mt-2 space-y-0.5">
-              {o.items.map((it: any, idx: number) => (
-                <div key={idx}>{it.name} × {it.quantity} — ₹{Number(it.price || 0).toLocaleString("en-IN")}</div>
-              ))}
-            </div>
-          )}
-          {o.address && <div className="text-[11px] text-cosmic-silver/60 mt-2">Ship to: {o.address}</div>}
-          {(o.payment_id || o.razorpay_order_id) && (
-            <div className="text-[11px] text-cosmic-silver/50 mt-1 break-all">
-              {o.payment_id && <span>Payment ID: {o.payment_id}</span>}
-              {o.payment_id && o.razorpay_order_id && <span> • </span>}
-              {o.razorpay_order_id && <span>Razorpay Order: {o.razorpay_order_id}</span>}
-            </div>
-          )}
-          <select value={o.status || "PENDING_PAYMENT"} onChange={async (e) => { await supabase.from("orders").update({ status: e.target.value }).eq("id", o.id); reload(); }} className="bg-background/60 border border-gold/30 rounded px-2 text-xs mt-2">
-            {["PENDING_PAYMENT", "PAYMENT_AUTHENTICATED", "PAID", "PAYMENT_FAILED", "confirmed", "processing", "shipped", "out_for_delivery", "delivered", "CANCELLED", "REFUNDED"].map((s) => <option key={s}>{s}</option>)}
-          </select>
-        </div>
-      ))}
-
-    </div>
-  );
-};
-
-/* ─── leads ─── */
-
-const LeadsTab = () => {
-  const [list, reload] = useList("visitor_leads");
-
-  const exportCSV = () => {
-    const headers = ["Name", "Mobile", "Email", "City", "Service", "Created At"];
-    const rows = list.map((l) => [l.full_name, l.mobile_number, l.email || "", l.city || "", l.interested_service || "", new Date(l.created_at).toLocaleString()]);
-    const csv = [headers, ...rows].map((row) => row.map((cell) => `"${cell}"`).join(",")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a"); a.href = url; a.download = `visitors_${new Date().toISOString().split("T")[0]}.csv`; a.click(); URL.revokeObjectURL(url);
-  };
-
-  const todayVisitors = list.filter((l) => new Date(l.created_at).toDateString() === new Date().toDateString()).length;
-  const thisWeekVisitors = list.filter((l) => { const d = new Date(l.created_at); const weekAgo = new Date(); weekAgo.setDate(weekAgo.getDate() - 7); return d >= weekAgo; }).length;
-
-  return (
-    <div className="mt-6">
-      <div className="glass-gold rounded-2xl p-4 mb-4">
-        <div className="flex flex-wrap gap-4 items-center justify-between">
-          <div className="flex gap-6">
-            <div className="text-center"><div className="text-2xl font-bold text-gold">{list.length}</div><div className="text-xs text-cosmic-silver/60">Total Visitors</div></div>
-            <div className="text-center"><div className="text-2xl font-bold text-gold">{todayVisitors}</div><div className="text-xs text-cosmic-silver/60">Today</div></div>
-            <div className="text-center"><div className="text-2xl font-bold text-gold">{thisWeekVisitors}</div><div className="text-xs text-cosmic-silver/60">This Week</div></div>
-          </div>
-          <Button onClick={exportCSV} className="bg-gradient-gold text-primary-foreground"><Download className="h-4 w-4 mr-2" /> Export CSV</Button>
-        </div>
-      </div>
-      <div className="space-y-2">
-        {list.map((lead) => (
-          <div key={lead.id} className="glass-gold rounded-xl p-3 flex justify-between items-center">
-            <div><div className="text-sm font-semibold">{lead.full_name}</div><div className="text-xs text-cosmic-silver/60">{lead.interested_service} • {lead.city}</div></div>
-            <div className="text-xs text-cosmic-silver/60">{new Date(lead.created_at).toLocaleString()}</div>
-          </div>
-        ))}
-        {list.length === 0 && <div className="text-center text-cosmic-silver/60 py-8">No visitors yet</div>}
-      </div>
-    </div>
-  );
-};
+const OrdersTab = () => (
+  <Card>
+    <h3 className="font-display text-gold mb-2 flex items-center gap-2"><Truck className="h-4 w-4" /> Orders & Order Tracking</h3>
+    <p className="text-sm text-cosmic-silver/70">
+      Order tracking is managed on its own dedicated admin page — update status, courier, tracking number and
+      delivery notes there, and customers see it live on their tracking page.
+    </p>
+    <Button asChild className="mt-4 bg-gradient-gold text-primary-foreground">
+      <Link to="/admin/orders">Open Order Tracking</Link>
+    </Button>
+  </Card>
+);
 
 /* ─── products (with image upload) ─── */
 
@@ -253,6 +166,7 @@ const ProductsTab = () => {
   const [f, setF] = useState({ name: "", description: "", price: "", image_url: "", category: "", stock: "100", discount_percent: "0", rating: "4.7" });
   const [imagePreview, setImagePreview] = useState("");
   const [gallery, setGallery] = useState<string[]>([]);
+  const [editing, setEditing] = useState<any | null>(null);
 
   const create = async () => {
     if (!f.name || !f.price) return toast.error("Name and price required");
@@ -337,10 +251,14 @@ const ProductsTab = () => {
                 <Input defaultValue={p.rating ?? 4.7} type="number" step="0.1" onBlur={(e) => Number(e.target.value) !== Number(p.rating) && patch(p.id, { rating: Math.min(4.8, Number(e.target.value)) })} className={`h-8 text-xs ${inputCls}`} aria-label="Rating" />
               </div>
             </div>
-            <button onClick={() => del(p.id)} className="text-destructive"><Trash2 className="h-4 w-4" /></button>
+            <div className="flex flex-col gap-2">
+              <button onClick={() => setEditing(p)} aria-label="Edit product" className="text-gold"><Pencil className="h-4 w-4" /></button>
+              <button onClick={() => del(p.id)} aria-label="Delete product" className="text-destructive"><Trash2 className="h-4 w-4" /></button>
+            </div>
           </div>
         ))}
       </div>
+      <ProductEditDialog product={editing} onClose={() => setEditing(null)} onSaved={reload} />
     </>
   );
 };
