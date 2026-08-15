@@ -22,6 +22,7 @@ const QUICK = [
 
 const HELP = [
   { l: "My Account", to: "/auth" },
+  { l: "Track Order", to: "/track-order" },
   { l: "Cart", to: "/cart" },
   { l: "Privacy Policy", to: "/privacy" },
   { l: "Terms & Conditions", to: "/terms" },
