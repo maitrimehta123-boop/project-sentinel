@@ -6,9 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Trash2, Download, Upload, Star, Plus, X } from "lucide-react";
-import OrdersDashboard from "@/components/admin/OrdersDashboard";
-import OrderManager from "@/components/admin/OrderManager";
+import { Link } from "react-router-dom";
+import { Trash2, Download, Upload, Star, Plus, X, Pencil, Truck } from "lucide-react";
+import ProductEditDialog from "@/components/admin/ProductEditDialog";
 
 /* ─── shared helpers ─── */
 
@@ -69,14 +69,13 @@ const Admin = () => {
         <StatsOverview />
         <Tabs defaultValue="appointments" className="w-full mt-6">
           <TabsList className="glass-gold flex-wrap h-auto justify-start">
-            {["appointments", "shop", "orders", "leads", "testimonials", "offers", "messages", "customers"].map((t) => (
+            {["appointments", "shop", "orders", "testimonials", "offers", "messages", "customers"].map((t) => (
               <TabsTrigger key={t} value={t} className="capitalize data-[state=active]:bg-gradient-gold data-[state=active]:text-primary-foreground">{t}</TabsTrigger>
             ))}
           </TabsList>
           <TabsContent value="appointments"><AppointmentsTab /></TabsContent>
           <TabsContent value="shop"><ProductsTab /></TabsContent>
-          <TabsContent value="orders"><OrdersDashboard /><OrderManager /></TabsContent>
-          <TabsContent value="leads"><LeadsTab /></TabsContent>
+          <TabsContent value="orders"><OrdersTab /></TabsContent>
           <TabsContent value="testimonials"><TestimonialsTab /></TabsContent>
           <TabsContent value="offers"><OffersTab /></TabsContent>
           <TabsContent value="messages"><MessagesTab /></TabsContent>
