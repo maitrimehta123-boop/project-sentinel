@@ -43,14 +43,21 @@ export const handler = async (event: FunctionEvent) => {
     const admin = getAdminClient();
 
     // Validate the catalogue server-side. Browser-provided prices and totals are never accepted.
-    const productIds = [...new Set(body.items.map((item) => item.product_id))];
-    const { data: products, error: productError } = await admin
-      .from("products")
-      .select("id, name, price, stock, active")
-      .in("id", productIds);
-    if (productError) throw productError;
+    // Built-in catalogue items use slug ids; only real uuids can be looked up in the table.
+    const isUuid = (value: string) =>
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+    const productIds = [...new Set(body.items.map((item) => item.product_id))].filter(isUuid);
+    let products: { id: string; name: string; price: number; stock: number; active: boolean }[] = [];
+    if (productIds.length) {
+      const { data, error: productError } = await admin
+        .from("products")
+        .select("id, name, price, stock, active")
+        .in("id", productIds);
+      if (productError) throw productError;
+      products = (data ?? []) as typeof products;
+    }
 
-    const productById = new Map((products ?? []).map((product) => [product.id, product]));
+    const productById = new Map(products.map((product) => [product.id, product]));
     const lineItems: Record<string, unknown>[] = [];
     let catalogueSubtotal = 0;
     for (const item of body.items) {
