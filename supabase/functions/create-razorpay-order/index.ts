@@ -58,12 +58,17 @@ Deno.serve(async (req) => {
     const admin = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
     // --- Trusted pricing: prices come from the database, never from the browser ---
-    const ids = [...new Set(b.items.map((i) => i.product_id))];
-    const { data: products, error: prodErr } = await admin
-      .from("products")
-      .select("id, name, price, stock, active, image_url")
-      .in("id", ids);
-    if (prodErr) throw prodErr;
+    const isUuid = (v: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
+    const ids = [...new Set(b.items.map((i) => i.product_id))].filter(isUuid);
+    let products: { id: string; name: string; price: number; stock: number; active: boolean }[] = [];
+    if (ids.length) {
+      const { data, error: prodErr } = await admin
+        .from("products")
+        .select("id, name, price, stock, active, image_url")
+        .in("id", ids);
+      if (prodErr) throw prodErr;
+      products = (data ?? []) as typeof products;
+    }
 
     const byId = new Map((products ?? []).map((p) => [p.id, p]));
     let subtotal = 0;
