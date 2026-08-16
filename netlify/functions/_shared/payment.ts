@@ -45,7 +45,8 @@ export const getConfig = () => {
   if (!supabaseUrl || !supabaseAnonKey || !serviceRoleKey || !razorpayKeyId || !razorpayKeySecret) {
     throw new Error("missing_server_configuration");
   }
-  if (!razorpayKeyId.startsWith("rzp_live_")) throw new Error("live_razorpay_key_required");
+  // Accept Razorpay test or live keys. The secret never leaves this server runtime.
+  if (!/^rzp_(test|live)_/.test(razorpayKeyId)) throw new Error("invalid_razorpay_key");
 
   return { supabaseUrl, supabaseAnonKey, serviceRoleKey, razorpayKeyId, razorpayKeySecret };
 };
