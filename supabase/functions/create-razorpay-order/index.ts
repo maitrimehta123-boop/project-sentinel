@@ -3,6 +3,7 @@ import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { z } from "npm:zod@3";
 import { createRazorpayOrder, hasRazorpayConfig, RZP_KEY_ID } from "../_shared/razorpay.ts";
 import { couponDiscount, gstFor, shippingFor, type CouponRow } from "../_shared/pricing.ts";
+import { CATALOG_PRICES } from "../_shared/catalog.ts";
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {
@@ -14,7 +15,7 @@ const BodySchema = z.object({
   items: z
     .array(
       z.object({
-        product_id: z.string().uuid(),
+        product_id: z.string().min(1).max(80),
         quantity: z.number().int().min(1).max(20),
         variant: z.string().max(120).nullable().optional(),
       }),
@@ -69,9 +70,18 @@ Deno.serve(async (req) => {
     const lineItems: Record<string, unknown>[] = [];
 
     for (const item of b.items) {
-      const p = byId.get(item.product_id);
-      if (!p || !p.active) return json({ error: "One of the items is no longer available." }, 400);
-      if (p.stock < item.quantity) return json({ error: `Not enough stock for ${p.name}.` }, 400);
+      const dbProduct = byId.get(item.product_id);
+      const builtIn = CATALOG_PRICES[item.product_id];
+      if (dbProduct && !dbProduct.active) return json({ error: "One of the items is no longer available." }, 400);
+      if (dbProduct && dbProduct.stock < item.quantity) {
+        return json({ error: `Not enough stock for ${dbProduct.name}.` }, 400);
+      }
+      const p = dbProduct
+        ? { id: dbProduct.id, name: dbProduct.name, price: Number(dbProduct.price) }
+        : builtIn
+          ? { id: item.product_id, name: builtIn.name, price: builtIn.price }
+          : null;
+      if (!p) return json({ error: "One of the items is no longer available." }, 400);
       const price = Number(p.price);
       subtotal += price * item.quantity;
       lineItems.push({
