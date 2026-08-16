@@ -134,8 +134,8 @@ export const handler = async (event: FunctionEvent) => {
     if (message === "missing_server_configuration") {
       return json(503, { error: "Payment service is not configured." });
     }
-    if (message === "live_razorpay_key_required") {
-      return json(503, { error: "Live payment credentials are required." });
+    if (message === "invalid_razorpay_key") {
+      return json(503, { error: "Payment credentials are invalid." });
     }
     return json(502, { error: "Could not create the payment order. Please try again." });
   }
