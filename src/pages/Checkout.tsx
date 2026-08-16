@@ -259,7 +259,10 @@ const Checkout = () => {
           contact: session.customer?.contact ?? form.phone,
         },
         theme: { color: "#C9A227" },
-        // Only UPI (top apps), Card and Netbanking are offered — Wallet, EMI and Pay Later are switched off.
+        // Only UPI (top apps + QR code + collect), Card and Netbanking are offered —
+        // Wallet, EMI and Pay Later are switched off. Using only the `method` allow-list
+        // (and not a custom config.display block/sequence) is the setup Razorpay
+        // guarantees renders correctly on every browser/webview, including the UPI QR tab.
         method: {
           netbanking: true,
           card: true,
@@ -267,23 +270,6 @@ const Checkout = () => {
           wallet: false,
           emi: false,
           paylater: false,
-        },
-        config: {
-          display: {
-            hide: [{ method: "wallet" }, { method: "paylater" }, { method: "emi" }],
-            blocks: {
-              upi: {
-                name: "Pay via UPI",
-                instruments: [{ method: "upi" }],
-              },
-              cardsAndBanking: {
-                name: "Cards & Net Banking",
-                instruments: [{ method: "card" }, { method: "netbanking" }],
-              },
-            },
-            sequence: ["block.upi", "block.cardsAndBanking"],
-            preferences: { show_default_blocks: false },
-          },
         },
         handler: async (response: any) => {
           // 3. Only the server can mark an order as paid.
@@ -485,3 +471,4 @@ const Checkout = () => {
 };
 
 export default Checkout;
+
