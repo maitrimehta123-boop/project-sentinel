@@ -35,26 +35,60 @@ declare global {
 
 const RAZORPAY_SCRIPT = "https://checkout.razorpay.com/v1/checkout.js";
 
+/**
+ * Payment endpoints, in priority order. On Netlify the bundled function runs;
+ * elsewhere (preview) the same secure server function on the backend is used.
+ * Secrets stay server-side in both cases — only the public key id is returned.
+ */
+const paymentEndpoints = (name: string) => {
+  const supabaseUrl = (import.meta.env.VITE_SUPABASE_URL as string | undefined)?.replace(/\/$/, "");
+  return [`/.netlify/functions/${name}`, supabaseUrl ? `${supabaseUrl}/functions/v1/${name}` : ""].filter(Boolean);
+};
+
 const callPaymentFunction = async <T,>(name: string, body: unknown): Promise<T> => {
   const { data: sessionData } = await supabase.auth.getSession();
   const accessToken = sessionData.session?.access_token;
   if (!accessToken) throw new Error("Please sign in to continue.");
 
-  const response = await fetch(`/.netlify/functions/${name}`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(body),
-  });
-  const payload = await response.json().catch(() => ({ error: "Invalid response from payment server." }));
-  if (!response.ok) {
-    const message = typeof payload?.error === "string" ? payload.error : `Payment request failed (${response.status}).`;
-    console.error(`Payment API ${name} failed`, response.status, message);
-    throw new Error(message);
+  let lastError = "Payment service is unavailable right now. Please try again.";
+
+  for (const url of paymentEndpoints(name)) {
+    let response: Response;
+    try {
+      response = await fetch(url, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          apikey: (import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string) ?? "",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+      });
+    } catch (networkError) {
+      console.error(`Payment API ${name} network error`, networkError);
+      continue;
+    }
+
+    // A missing function is served the SPA's index.html by the host — treat as "not deployed here".
+    const contentType = response.headers.get("content-type") ?? "";
+    if (!contentType.includes("application/json")) {
+      console.warn(`Payment API ${name} not available at ${url} (${response.status})`);
+      lastError = "Payment service is not deployed yet. Please try again shortly.";
+      continue;
+    }
+
+    const payload = await response.json().catch(() => null);
+    if (!response.ok || !payload) {
+      const message =
+        typeof payload?.error === "string" ? payload.error : `Payment request failed (${response.status}).`;
+      console.error(`Payment API ${name} failed`, response.status, message);
+      // Server reachable and rejecting on purpose — surface it, don't retry elsewhere.
+      throw new Error(message);
+    }
+    return payload as T;
   }
-  return payload as T;
+
+  throw new Error(lastError);
 };
 
 /** Loaded lazily — only when the customer actually starts a payment. */
