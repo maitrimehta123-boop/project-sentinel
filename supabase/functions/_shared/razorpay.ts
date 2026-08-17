@@ -42,18 +42,19 @@ export const verifyPaymentSignature = async (
   return timingSafeEqual(expected, signature);
 };
 
+const razorpayAuth = () => "Basic " + btoa(`${RZP_KEY_ID}:${RZP_KEY_SECRET}`);
+
 /** Creates a Razorpay order. Amount must already be validated server-side, in paise. */
 export const createRazorpayOrder = async (body: Record<string, unknown>) => {
   const res = await fetch("https://api.razorpay.com/v1/orders", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: "Basic " + btoa(`${RZP_KEY_ID}:${RZP_KEY_SECRET}`),
+      Authorization: razorpayAuth(),
     },
     body: JSON.stringify(body),
   });
   if (!res.ok) {
-    // Log only a safe status code — never the response body (may echo credentials/context).
     console.error("razorpay_order_create_failed", res.status);
     throw new Error("gateway_unavailable");
   }
@@ -63,11 +64,35 @@ export const createRazorpayOrder = async (body: Record<string, unknown>) => {
 /** Fetches a payment to confirm its true status/amount straight from Razorpay. */
 export const fetchRazorpayPayment = async (paymentId: string) => {
   const res = await fetch(`https://api.razorpay.com/v1/payments/${encodeURIComponent(paymentId)}`, {
-    headers: { Authorization: "Basic " + btoa(`${RZP_KEY_ID}:${RZP_KEY_SECRET}`) },
+    headers: { Authorization: razorpayAuth() },
   });
   if (!res.ok) {
     console.error("razorpay_payment_fetch_failed", res.status);
     throw new Error("gateway_unavailable");
+  }
+  return (await res.json()) as {
+    id: string;
+    order_id: string;
+    status: string;
+    amount: number;
+    currency: string;
+    method?: string;
+  };
+};
+
+/** Captures an authorised payment. This keeps the normal checkout flow reliable even without a webhook. */
+export const captureRazorpayPayment = async (paymentId: string, amountPaise: number) => {
+  const res = await fetch(`https://api.razorpay.com/v1/payments/${encodeURIComponent(paymentId)}/capture`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: razorpayAuth(),
+    },
+    body: JSON.stringify({ amount: amountPaise, currency: "INR" }),
+  });
+  if (!res.ok) {
+    console.error("razorpay_payment_capture_failed", res.status);
+    throw new Error("capture_failed");
   }
   return (await res.json()) as {
     id: string;
