@@ -384,7 +384,7 @@ const Checkout = () => {
   };
 
 
-  if (confirmed) {
+  if (confirmed && receipt) {
     return (
       <PageLayout title="Order Confirmed">
         <div className="container max-w-md py-32 text-center">
@@ -394,30 +394,17 @@ const Checkout = () => {
             </div>
           </motion.div>
           <h1 className="font-display text-2xl text-gradient-gold mb-2">Order Placed Successfully!</h1>
-          <p className="text-cosmic-silver/70 mb-4">Thank you, {form.full_name}.</p>
-          <div className="glass-gold rounded-2xl p-4 text-left text-sm space-y-1.5 mb-6">
-            <div className="flex justify-between"><span className="text-cosmic-silver/60">Order number</span><span className="text-cosmic-silver">{orderNumber ?? orderId}</span></div>
-            <div className="flex justify-between"><span className="text-cosmic-silver/60">Payment status</span><span className="text-emerald-400">Paid</span></div>
-            <div className="flex justify-between"><span className="text-cosmic-silver/60">Amount paid</span><span className="text-gold font-semibold">{inr(paidAmount)}</span></div>
-            {paymentId && <div className="flex justify-between"><span className="text-cosmic-silver/60">Payment ID</span><span className="text-cosmic-silver/80 text-xs">{paymentId}</span></div>}
-            <div className="flex justify-between"><span className="text-cosmic-silver/60">Estimated delivery</span><span className="text-cosmic-silver">{deliveryEstimate()}</span></div>
-          </div>
-          <p className="text-sm text-cosmic-silver/60 mb-6">
-            We've received your payment and will dispatch your order shortly. A confirmation has been sent to your email.
+          <p className="text-cosmic-silver/70 mb-2">Thank you, {receipt.customer_name}.</p>
+          <p className="text-sm text-cosmic-silver/60">
+            Order {receipt.order_number ?? receipt.order_id} · Estimated delivery {deliveryEstimate()}
           </p>
-
-          <div className="flex gap-3 justify-center">
-            <Button
-              onClick={() => nav(`/track-order?order=${encodeURIComponent(orderNumber ?? "")}`)}
-              className="bg-gradient-gold text-primary-foreground"
-            >
-              Track Your Order
-            </Button>
-            <Button onClick={() => nav("/shop")} className="bg-gradient-gold text-primary-foreground">
-              Continue Shopping
-            </Button>
-          </div>
         </div>
+        <OrderConfirmationDialog
+          open
+          data={receipt}
+          onTrack={() => nav(`/track-order?order=${encodeURIComponent(receipt.order_number ?? "")}`)}
+          onContinue={() => nav("/shop")}
+        />
       </PageLayout>
     );
   }
