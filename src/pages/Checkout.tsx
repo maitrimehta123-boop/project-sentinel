@@ -514,6 +514,16 @@ const Checkout = () => {
           </div>
         </div>
       </div>
+
+      <PaymentFailedDialog
+        open={Boolean(failure)}
+        onOpenChange={(next) => { if (!next) setFailure(null); }}
+        reference={failure?.reference ?? null}
+        reason={failure?.reason ?? null}
+        amount={total}
+        onRetry={() => { setFailure(null); void handlePay(); }}
+        onBackToCart={() => nav("/cart")}
+      />
     </PageLayout>
   );
 };
