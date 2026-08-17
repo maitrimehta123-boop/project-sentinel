@@ -1,7 +1,12 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { z } from "npm:zod@3";
-import { fetchRazorpayPayment, hasRazorpayConfig, verifyPaymentSignature } from "../_shared/razorpay.ts";
+import {
+  captureRazorpayPayment,
+  fetchRazorpayPayment,
+  hasRazorpayConfig,
+  verifyPaymentSignature,
+} from "../_shared/razorpay.ts";
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {
@@ -20,7 +25,9 @@ Deno.serve(async (req) => {
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
 
   try {
-    if (!hasRazorpayConfig()) return json({ error: "Payment service is temporarily unavailable. Please try again." }, 503);
+    if (!hasRazorpayConfig()) {
+      return json({ error: "Payment service is temporarily unavailable. Please try again." }, 503);
+    }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const authHeader = req.headers.get("Authorization") ?? "";
@@ -37,61 +44,118 @@ Deno.serve(async (req) => {
     if (!parsed.success) return json({ error: "Invalid payment confirmation." }, 400);
     const { order_id, razorpay_payment_id, razorpay_signature } = parsed.data;
 
-    const admin = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const admin = createClient(supabaseUrl, serviceRoleKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
 
-    // Authorisation: the order must belong to the signed-in customer.
-    const { data: order } = await admin
+    const { data: order, error: orderError } = await admin
       .from("orders")
       .select("id, user_id, total, razorpay_order_id, payment_status, status, order_number, payment_id")
       .eq("id", order_id)
       .maybeSingle();
+
+    if (orderError) throw orderError;
     if (!order || order.user_id !== user.id) return json({ error: "Order not found." }, 404);
 
-    // Idempotency: already verified → return the same result, no duplicate processing.
+    // Idempotency: a repeated callback must never create a second payment/order state.
     if (order.payment_status === "paid") {
-      return json({ status: "paid", order_id: order.id, order_number: order.order_number, payment_id: order.payment_id });
+      return json({
+        status: "paid",
+        order_id: order.id,
+        order_number: order.order_number,
+        payment_id: order.payment_id,
+      });
     }
+
     if (!order.razorpay_order_id) return json({ error: "Invalid payment confirmation." }, 400);
 
-    // Signature is verified against the SERVER-stored Razorpay order id.
-    const valid = await verifyPaymentSignature(order.razorpay_order_id, razorpay_payment_id, razorpay_signature);
+    // Mandatory Razorpay signature verification. The order id comes from our DB,
+    // never from a browser-supplied value.
+    const valid = await verifyPaymentSignature(
+      order.razorpay_order_id,
+      razorpay_payment_id,
+      razorpay_signature,
+    );
+
     if (!valid) {
-      await admin.from("orders").update({ status: "PAYMENT_FAILED", payment_status: "failed" }).eq("id", order.id);
+      await admin
+        .from("orders")
+        .update({ status: "PAYMENT_FAILED", payment_status: "failed" })
+        .eq("id", order.id);
       return json({ error: "We could not verify this payment." }, 400);
     }
 
-    // Confirm the truth with Razorpay: right order, right amount, captured/authorized.
-    const payment = await fetchRazorpayPayment(razorpay_payment_id);
     const expectedPaise = Math.round(Number(order.total) * 100);
-    if (payment.order_id !== order.razorpay_order_id || payment.amount !== expectedPaise || payment.currency !== "INR") {
-      await admin.from("orders").update({ status: "PAYMENT_FAILED", payment_status: "failed" }).eq("id", order.id);
+    if (!Number.isSafeInteger(expectedPaise) || expectedPaise < 100) {
+      return json({ error: "Invalid payment amount." }, 400);
+    }
+
+    // Verify the real payment with Razorpay, including order, amount and currency.
+    let payment = await fetchRazorpayPayment(razorpay_payment_id);
+    if (
+      payment.order_id !== order.razorpay_order_id ||
+      payment.amount !== expectedPaise ||
+      payment.currency !== "INR"
+    ) {
+      await admin
+        .from("orders")
+        .update({ status: "PAYMENT_FAILED", payment_status: "failed" })
+        .eq("id", order.id);
       return json({ error: "We could not verify this payment." }, 400);
     }
 
-    const captured = payment.status === "captured";
-    const { data: updated } = await admin
+    // If Razorpay reports authorization rather than capture, capture it server-side.
+    // This is the non-webhook fallback for the normal browser checkout flow.
+    if (payment.status === "authorized") {
+      try {
+        payment = await captureRazorpayPayment(razorpay_payment_id, expectedPaise);
+      } catch (captureError) {
+        console.error(
+          "razorpay_capture_error",
+          captureError instanceof Error ? captureError.message : "unknown",
+        );
+        // Another capture process/auto-capture may have won the race; fetch the truth again.
+        payment = await fetchRazorpayPayment(razorpay_payment_id);
+      }
+    }
+
+    if (payment.status !== "captured") {
+      await admin
+        .from("orders")
+        .update({ status: "PAYMENT_AUTHENTICATED", payment_status: "authenticated" })
+        .eq("id", order.id);
+      return json(409, {
+        status: "authenticated",
+        error: "Payment was authorized but is not captured yet. Please do not pay again.",
+      });
+    }
+
+    const { data: updated, error: updateError } = await admin
       .from("orders")
       .update({
         payment_id: razorpay_payment_id,
         transaction_id: razorpay_payment_id,
         payment_method: payment.method ? `razorpay:${payment.method}` : "razorpay",
-        payment_status: captured ? "paid" : "authenticated",
-        status: captured ? "PAID" : "PAYMENT_AUTHENTICATED",
-        paid_at: captured ? new Date().toISOString() : null,
+        payment_status: "paid",
+        status: "PAID",
+        paid_at: new Date().toISOString(),
       })
       .eq("id", order.id)
       .neq("payment_status", "paid")
       .select("id, order_number")
       .maybeSingle();
 
+    if (updateError) throw updateError;
+
     return json({
-      status: captured ? "paid" : "authenticated",
+      status: "paid",
       order_id: order.id,
       order_number: updated?.order_number ?? order.order_number,
       payment_id: razorpay_payment_id,
     });
   } catch (e) {
-    console.error("verify_payment_error", (e as Error)?.message);
+    console.error("verify_payment_error", e instanceof Error ? e.message : "unknown");
     return json({ error: "Payment service is temporarily unavailable. Please try again." }, 500);
   }
 });
