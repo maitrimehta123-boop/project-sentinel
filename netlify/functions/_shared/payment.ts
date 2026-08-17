@@ -45,7 +45,6 @@ export const getConfig = () => {
   if (!supabaseUrl || !supabaseAnonKey || !serviceRoleKey || !razorpayKeyId || !razorpayKeySecret) {
     throw new Error("missing_server_configuration");
   }
-  // Accept Razorpay test or live keys. The secret never leaves this server runtime.
   if (!/^rzp_(test|live)_/.test(razorpayKeyId)) throw new Error("invalid_razorpay_key");
 
   return { supabaseUrl, supabaseAnonKey, serviceRoleKey, razorpayKeyId, razorpayKeySecret };
@@ -92,15 +91,17 @@ export const createRazorpayOrder = async (
       amount: amountPaise,
       currency: "INR",
       receipt,
+      payment_capture: 1,
       notes: { internal_order_id: internalOrderId, user_id: userId },
     }),
   });
 
   if (!response.ok) {
     const details = await response.text();
-    console.error("razorpay_order_create_failed", response.status, details.slice(0, 1000));
+    console.error("razorpay_order_create_failed", response.status, details.slice(0, 300));
     throw new Error("razorpay_order_create_failed");
   }
+
   return (await response.json()) as { id: string; amount: number; currency: string };
 };
 
@@ -114,22 +115,54 @@ export const verifyRazorpaySignature = (razorpayOrderId: string, paymentId: stri
   return expectedBuffer.length === suppliedBuffer.length && timingSafeEqual(expectedBuffer, suppliedBuffer);
 };
 
+export type RazorpayPayment = {
+  id: string;
+  order_id: string;
+  amount: number;
+  currency: string;
+  status: string;
+  method?: string;
+};
+
 export const fetchRazorpayPayment = async (paymentId: string) => {
   const config = getConfig();
   const response = await fetch(`https://api.razorpay.com/v1/payments/${encodeURIComponent(paymentId)}`, {
     headers: { Authorization: razorpayAuth(config.razorpayKeyId, config.razorpayKeySecret) },
   });
+
   if (!response.ok) {
     const details = await response.text();
-    console.error("razorpay_payment_fetch_failed", response.status, details.slice(0, 1000));
+    console.error("razorpay_payment_fetch_failed", response.status, details.slice(0, 300));
     throw new Error("razorpay_payment_fetch_failed");
   }
-  return (await response.json()) as {
-    id: string;
-    order_id: string;
-    amount: number;
-    currency: string;
-    status: string;
-    method?: string;
-  };
+
+  return (await response.json()) as RazorpayPayment;
+};
+
+/**
+ * Fallback capture for accounts where a successful checkout remains "authorized".
+ * This makes the non-webhook flow reliable: the server captures the payment and
+ * then verifies the final captured state before marking the order PAID.
+ */
+export const captureRazorpayPayment = async (paymentId: string, amountPaise: number) => {
+  const config = getConfig();
+  const response = await fetch(
+    `https://api.razorpay.com/v1/payments/${encodeURIComponent(paymentId)}/capture`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: razorpayAuth(config.razorpayKeyId, config.razorpayKeySecret),
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ amount: amountPaise, currency: "INR" }),
+    },
+  );
+
+  if (!response.ok) {
+    const details = await response.text();
+    console.error("razorpay_payment_capture_failed", response.status, details.slice(0, 300));
+    throw new Error("razorpay_payment_capture_failed");
+  }
+
+  return (await response.json()) as RazorpayPayment;
 };
