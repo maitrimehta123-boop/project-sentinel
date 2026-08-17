@@ -295,9 +295,6 @@ const Checkout = () => {
         setPendingSession(session);
       }
       pendingSessionRef.current = session;
-      if (true) {
-      }
-
       // 2. Load the checkout script only now, and open it on user action.
       await loadRazorpay();
 
