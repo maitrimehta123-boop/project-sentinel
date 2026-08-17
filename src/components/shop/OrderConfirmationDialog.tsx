@@ -13,9 +13,8 @@ type Props = {
 
 /** Shown only after the server has verified the payment as captured/paid. */
 const OrderConfirmationDialog = ({ open, data, onContinue, onTrack }: Props) => (
-  <Dialog open={open}>
+  <Dialog open={open} onOpenChange={(next) => { if (!next) onContinue(); }}>
     <DialogContent
-      hideClose
       className="max-w-lg w-[95vw] max-h-[92vh] overflow-y-auto glass-gold border-gold/30 p-0"
     >
       <div className="text-center px-5 pt-6 pb-4 border-b border-gold/20">
