@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowLeft, ShieldCheck, Truck, Lock, CheckCircle2 } from "lucide-react";
@@ -11,6 +11,9 @@ import { useCart, type CartItem } from "@/lib/cart";
 import { resolveImages } from "@/lib/productImages";
 import { deliveryEstimate, inr, shippingFor, gstFor } from "@/lib/shop";
 import { supabase } from "@/integrations/supabase/client";
+import OrderConfirmationDialog from "@/components/shop/OrderConfirmationDialog";
+import PaymentFailedDialog from "@/components/shop/PaymentFailedDialog";
+import type { ReceiptData } from "@/lib/receipt";
 import { toast } from "sonner";
 const logo = "/assets/brand-logo.jpg";
 
@@ -141,12 +144,11 @@ const Checkout = () => {
   });
   const [processing, setProcessing] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
-  const [orderId, setOrderId] = useState<string | null>(null);
-  const [orderNumber, setOrderNumber] = useState<string | null>(null);
-  const [paymentId, setPaymentId] = useState<string | null>(null);
-  const [paidAmount, setPaidAmount] = useState<number>(0);
+  const [receipt, setReceipt] = useState<ReceiptData | null>(null);
+  const [failure, setFailure] = useState<{ reference: string | null; reason: string | null } | null>(null);
   /** Reused on retry so a failed attempt never creates a duplicate order. */
   const [pendingSession, setPendingSession] = useState<PaySession | null>(null);
+  const pendingSessionRef = useRef<PaySession | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -209,12 +211,63 @@ const Checkout = () => {
     return null;
   };
 
+  /** Reads the saved order back from the database (webhook may have confirmed it). */
+  const waitForServerConfirmation = async (internalOrderId: string) => {
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const { data } = await supabase
+        .from("orders")
+        .select("payment_status, order_number, payment_id")
+        .eq("id", internalOrderId)
+        .maybeSingle();
+      if (data?.payment_status === "paid") return data;
+      await new Promise((r) => setTimeout(r, 2000));
+    }
+    return null;
+  };
+
+  /** Builds the receipt from the paid order and opens the confirmation popup. */
+  const finishConfirmed = (confirmedOrderNumber: string | null, confirmedPaymentId: string | null) => {
+    setReceipt({
+      order_number: confirmedOrderNumber,
+      order_id: pendingSessionRef.current?.order_id ?? "",
+      payment_id: confirmedPaymentId,
+      payment_method: "razorpay",
+      payment_status: "PAID / CAPTURED",
+      paid_at: new Date().toISOString(),
+      customer_name: form.full_name.trim(),
+      customer_phone: form.phone.trim(),
+      customer_email: form.email.trim(),
+      address: form.address.trim(),
+      city: form.city.trim(),
+      state: form.state.trim(),
+      pincode: form.pincode.trim(),
+      items: cartItems.map((i) => ({
+        name: i.name,
+        image: resolveImages({ image_url: i.image_url } as any)[0],
+        price: i.price,
+        quantity: i.quantity,
+        variant: i.variant ?? null,
+      })),
+      subtotal,
+      discount: 0,
+      shipping,
+      gst,
+      total,
+    });
+    setPendingSession(null);
+    setConfirmed(true);
+    setProcessing(false);
+    clear();
+    toast.success("Payment successful! Your order has been placed.");
+  };
+
   const handlePay = async () => {
     const err = validate();
     if (err) return toast.error(err);
     if (!user) return toast.error("Please sign in to continue.");
 
     setProcessing(true);
+    setFailure(null);
 
     try {
       // 1. Server creates the order and validates the amount from the database.
@@ -241,7 +294,7 @@ const Checkout = () => {
         session = data as PaySession;
         setPendingSession(session);
       }
-
+      pendingSessionRef.current = session;
       // 2. Load the checkout script only now, and open it on user action.
       await loadRazorpay();
 
@@ -272,7 +325,7 @@ const Checkout = () => {
           paylater: false,
         },
         handler: async (response: any) => {
-          // 3. Only the server can mark an order as paid.
+          // 3. Only the server can mark an order as paid (signature + captured status).
           try {
             const v = await callPaymentFunction<{
               status: string;
@@ -285,34 +338,42 @@ const Checkout = () => {
               razorpay_signature: response.razorpay_signature,
             });
 
-            if (v.status !== "paid") throw new Error("Payment was not captured.");
-
-            setOrderId(v.order_id);
-            setOrderNumber(v.order_number ?? null);
-            setPaymentId(v.payment_id ?? null);
-            setPaidAmount(session.amount / 100);
-            setPendingSession(null);
-            setConfirmed(true);
-            clear();
-            toast.success("Payment successful! Your order has been placed.");
+            if (v.status !== "paid") throw new Error("pending_capture");
+            finishConfirmed(v.order_number ?? session.order_number, v.payment_id ?? response.razorpay_payment_id);
           } catch (verificationError) {
             console.error("Payment verification failed", verificationError);
+            // The webhook may still confirm the payment — check the saved order before failing.
+            const paid = await waitForServerConfirmation(session.order_id);
+            if (paid) {
+              finishConfirmed(paid.order_number ?? session.order_number, paid.payment_id ?? response.razorpay_payment_id);
+              return;
+            }
             setProcessing(false);
-            toast.error("We could not confirm your payment yet. If money was debited, please contact support.");
+            setFailure({
+              reference: session.order_number ?? session.order_id,
+              reason: "We could not confirm this payment yet. If money was debited it will be confirmed shortly — please check My Orders before paying again.",
+            });
           }
         },
         modal: {
           ondismiss: () => {
             setProcessing(false);
             toast.error("Payment cancelled. Your cart is saved — try again when ready.");
+            setFailure({
+              reference: session?.order_number ?? session?.order_id ?? null,
+              reason: "Payment was cancelled before completion.",
+            });
           },
         },
       };
 
       const rz = new window.Razorpay(options);
-      rz.on("payment.failed", () => {
+      rz.on("payment.failed", (failedEvent: any) => {
         setProcessing(false);
-        toast.error("Payment failed. Please try again or use a different payment method.");
+        setFailure({
+          reference: session?.order_number ?? session?.order_id ?? null,
+          reason: typeof failedEvent?.error?.description === "string" ? failedEvent.error.description : null,
+        });
       });
       rz.open();
     } catch (paymentError) {
@@ -323,7 +384,7 @@ const Checkout = () => {
   };
 
 
-  if (confirmed) {
+  if (confirmed && receipt) {
     return (
       <PageLayout title="Order Confirmed">
         <div className="container max-w-md py-32 text-center">
@@ -333,30 +394,17 @@ const Checkout = () => {
             </div>
           </motion.div>
           <h1 className="font-display text-2xl text-gradient-gold mb-2">Order Placed Successfully!</h1>
-          <p className="text-cosmic-silver/70 mb-4">Thank you, {form.full_name}.</p>
-          <div className="glass-gold rounded-2xl p-4 text-left text-sm space-y-1.5 mb-6">
-            <div className="flex justify-between"><span className="text-cosmic-silver/60">Order number</span><span className="text-cosmic-silver">{orderNumber ?? orderId}</span></div>
-            <div className="flex justify-between"><span className="text-cosmic-silver/60">Payment status</span><span className="text-emerald-400">Paid</span></div>
-            <div className="flex justify-between"><span className="text-cosmic-silver/60">Amount paid</span><span className="text-gold font-semibold">{inr(paidAmount)}</span></div>
-            {paymentId && <div className="flex justify-between"><span className="text-cosmic-silver/60">Payment ID</span><span className="text-cosmic-silver/80 text-xs">{paymentId}</span></div>}
-            <div className="flex justify-between"><span className="text-cosmic-silver/60">Estimated delivery</span><span className="text-cosmic-silver">{deliveryEstimate()}</span></div>
-          </div>
-          <p className="text-sm text-cosmic-silver/60 mb-6">
-            We've received your payment and will dispatch your order shortly. A confirmation has been sent to your email.
+          <p className="text-cosmic-silver/70 mb-2">Thank you, {receipt.customer_name}.</p>
+          <p className="text-sm text-cosmic-silver/60">
+            Order {receipt.order_number ?? receipt.order_id} · Estimated delivery {deliveryEstimate()}
           </p>
-
-          <div className="flex gap-3 justify-center">
-            <Button
-              onClick={() => nav(`/track-order?order=${encodeURIComponent(orderNumber ?? "")}`)}
-              className="bg-gradient-gold text-primary-foreground"
-            >
-              Track Your Order
-            </Button>
-            <Button onClick={() => nav("/shop")} className="bg-gradient-gold text-primary-foreground">
-              Continue Shopping
-            </Button>
-          </div>
         </div>
+        <OrderConfirmationDialog
+          open
+          data={receipt}
+          onTrack={() => nav(`/track-order?order=${encodeURIComponent(receipt.order_number ?? "")}`)}
+          onContinue={() => nav("/shop")}
+        />
       </PageLayout>
     );
   }
@@ -457,7 +505,7 @@ const Checkout = () => {
                 disabled={processing}
                 className="w-full mt-5 bg-gradient-gold text-primary-foreground font-semibold h-12 glow-gold"
               >
-                {processing ? "Processing..." : `Pay ${inr(total)}`}
+                {processing ? "Processing Secure Payment..." : `Pay ${inr(total)}`}
               </Button>
               <p className="text-[11px] text-cosmic-silver/50 text-center mt-2">
                 100% secure payment · UPI, Cards & Net Banking supported.
@@ -466,6 +514,16 @@ const Checkout = () => {
           </div>
         </div>
       </div>
+
+      <PaymentFailedDialog
+        open={Boolean(failure)}
+        onOpenChange={(next) => { if (!next) setFailure(null); }}
+        reference={failure?.reference ?? null}
+        reason={failure?.reason ?? null}
+        amount={total}
+        onRetry={() => { setFailure(null); void handlePay(); }}
+        onBackToCart={() => nav("/cart")}
+      />
     </PageLayout>
   );
 };
