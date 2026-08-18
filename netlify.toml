@@ -7,11 +7,22 @@
   NODE_VERSION = "20"
   VITE_SUPABASE_URL = "https://lzfcquqtsxkemodhbyqh.supabase.co"
   VITE_SUPABASE_PROJECT_ID = "lzfcquqtsxkemodhbyqh"
-  VITE_SUPABASE_PUBLISHABLE_KEY = "${SUPABASE_PUBLISHABLE_KEY}"
-  VITE_SUPABASE_ANON_KEY = "${SUPABASE_ANON_KEY}"
+  VITE_SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx6ZmNxdXF0c3hrZW1vZGhieXFoIiwiaWF0IjoxNzY1NjQyMDg5LCJleHAiOjIwMDEyMTA4MDl9._KGjh1D8w216PVdnG_csbsA015twT9erbkBAYhrGcCQ"
+  VITE_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx6ZmNxdXF0c3hrZW1vZGhteXFoIiwiaWF0IjoxNzY1NjQyMDg5LCJleHAiOjIwMDEyMTA4MDl9._KGjh1D8w216PVdnG_csbsA015twT9erbkBAYhrGcCQ"
 
 [functions]
   node_bundler = "esbuild"
+
+[[redirects]]
+  from = "/assets/*"
+  to = "/assets/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/.netlify/functions/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
+  force = true
 
 [[redirects]]
   from = "/*"
