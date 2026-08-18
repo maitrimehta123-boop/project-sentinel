@@ -39,13 +39,16 @@ declare global {
 const RAZORPAY_SCRIPT = "https://checkout.razorpay.com/v1/checkout.js";
 
 /**
- * Payment endpoints, in priority order. On Netlify the bundled function runs;
- * elsewhere (preview) the same secure server function on the backend is used.
- * Secrets stay server-side in both cases — only the public key id is returned.
+ * Production payment backend: the Netlify Function. It is the single path that
+ * creates the Razorpay order and verifies the payment — secrets never leave it.
+ * In local/preview development (where Netlify Functions are not running) the
+ * equivalent server function on the backend is used as a development fallback.
  */
 const paymentEndpoints = (name: string) => {
+  const netlify = `/.netlify/functions/${name}`;
+  if (!import.meta.env.DEV) return [netlify];
   const supabaseUrl = (import.meta.env.VITE_SUPABASE_URL as string | undefined)?.replace(/\/$/, "");
-  return [`/.netlify/functions/${name}`, supabaseUrl ? `${supabaseUrl}/functions/v1/${name}` : ""].filter(Boolean);
+  return [netlify, supabaseUrl ? `${supabaseUrl}/functions/v1/${name}` : ""].filter(Boolean);
 };
 
 const callPaymentFunction = async <T,>(name: string, body: unknown): Promise<T> => {
@@ -272,6 +275,19 @@ const Checkout = () => {
     try {
       // 1. Server creates the order and validates the amount from the database.
       let session = pendingSession;
+      // Safety on retry: if the earlier attempt actually succeeded, never charge again.
+      if (session) {
+        const { data: existing } = await supabase
+          .from("orders")
+          .select("payment_status, order_number, payment_id")
+          .eq("id", session.order_id)
+          .maybeSingle();
+        if (existing?.payment_status === "paid") {
+          pendingSessionRef.current = session;
+          finishConfirmed(existing.order_number ?? session.order_number, existing.payment_id ?? null);
+          return;
+        }
+      }
       if (!session) {
         const data = await callPaymentFunction<PaySession>("create-razorpay-order", {
           items: cartItems.map((i) => ({
@@ -288,8 +304,11 @@ const Checkout = () => {
           pincode: form.pincode.trim(),
           notes: form.notes.trim() || null,
         });
-        if (!data.razorpay_order_id || data.amount !== Math.round(total * 100)) {
-          throw new Error("The payment server returned an invalid order amount.");
+        if (!data.razorpay_order_id || !data.amount) {
+          throw new Error("Could not start the payment. Please try again.");
+        }
+        if (data.amount !== Math.round(total * 100)) {
+          throw new Error("Your order total has changed. Please review your cart and try again.");
         }
         session = data as PaySession;
         setPendingSession(session);

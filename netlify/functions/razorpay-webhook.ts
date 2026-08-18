@@ -1,5 +1,5 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { getAdminClient, json, type FunctionEvent } from "./_shared/payment.js";
+import { getAdminClient, json, type FunctionEvent } from "./_shared/payment";
 
 /**
  * Razorpay webhook (Netlify). Public endpoint — authenticity comes purely from

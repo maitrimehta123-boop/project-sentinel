@@ -34,10 +34,22 @@ export const preflight = (event: FunctionEvent) =>
 
 const env = (name: string) => process.env[name]?.trim() ?? "";
 
+/**
+ * Public backend identifiers. These are the same anon values already shipped in
+ * the browser bundle, kept here as a runtime fallback because variables declared
+ * in netlify.toml [build.environment] are build-time only. No secret lives here.
+ */
+const PUBLIC_SUPABASE_URL = "https://lzfcquqtsxkemodhbyqh.supabase.co";
+const PUBLIC_SUPABASE_ANON_KEY =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx6ZmNxdXF0c3hrZW1vZGhieXFoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU2NDIwODksImV4cCI6MjEwMTIxODA4OX0._KGjh1D8w216PVdnG_csbsA015twT9erbkBAYhrGcCQ";
+
 export const getConfig = () => {
-  const supabaseUrl = env("SUPABASE_URL") || env("VITE_SUPABASE_URL");
+  const supabaseUrl = env("SUPABASE_URL") || env("VITE_SUPABASE_URL") || PUBLIC_SUPABASE_URL;
   const supabaseAnonKey =
-    env("SUPABASE_ANON_KEY") || env("VITE_SUPABASE_PUBLISHABLE_KEY") || env("VITE_SUPABASE_ANON_KEY");
+    env("SUPABASE_ANON_KEY") ||
+    env("VITE_SUPABASE_PUBLISHABLE_KEY") ||
+    env("VITE_SUPABASE_ANON_KEY") ||
+    PUBLIC_SUPABASE_ANON_KEY;
   const serviceRoleKey = env("SUPABASE_SERVICE_ROLE_KEY");
   const razorpayKeyId = env("RAZORPAY_KEY_ID");
   const razorpayKeySecret = env("RAZORPAY_KEY_SECRET");
