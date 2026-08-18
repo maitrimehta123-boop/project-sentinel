@@ -39,13 +39,16 @@ declare global {
 const RAZORPAY_SCRIPT = "https://checkout.razorpay.com/v1/checkout.js";
 
 /**
- * Payment endpoints, in priority order. On Netlify the bundled function runs;
- * elsewhere (preview) the same secure server function on the backend is used.
- * Secrets stay server-side in both cases — only the public key id is returned.
+ * Production payment backend: the Netlify Function. It is the single path that
+ * creates the Razorpay order and verifies the payment — secrets never leave it.
+ * In local/preview development (where Netlify Functions are not running) the
+ * equivalent server function on the backend is used as a development fallback.
  */
 const paymentEndpoints = (name: string) => {
+  const netlify = `/.netlify/functions/${name}`;
+  if (!import.meta.env.DEV) return [netlify];
   const supabaseUrl = (import.meta.env.VITE_SUPABASE_URL as string | undefined)?.replace(/\/$/, "");
-  return [`/.netlify/functions/${name}`, supabaseUrl ? `${supabaseUrl}/functions/v1/${name}` : ""].filter(Boolean);
+  return [netlify, supabaseUrl ? `${supabaseUrl}/functions/v1/${name}` : ""].filter(Boolean);
 };
 
 const callPaymentFunction = async <T,>(name: string, body: unknown): Promise<T> => {
