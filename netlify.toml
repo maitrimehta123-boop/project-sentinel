@@ -7,8 +7,8 @@
   NODE_VERSION = "20"
   VITE_SUPABASE_URL = "https://lzfcquqtsxkemodhbyqh.supabase.co"
   VITE_SUPABASE_PROJECT_ID = "lzfcquqtsxkemodhbyqh"
-  VITE_SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzIiwicmVmIjoibHp6ZmNxdXF0c3hrZW1vZGhiaXFoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU2NDIwODksImV4cCI6MjEwMTIxODA4OX0._KGjh1D8w216PVdnG_csbsA015twT9erbkBAYhrGcCQ"
-  VITE_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx6ZmNxdXF0c3hrZW1vZGhiaXFoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU2NDIwODksImV4cCI6MjEwMTIxODA4OX0._KGjh1D8w216PVdnG_csbsA015twT9erbkBAYhrGcCQ"
+  VITE_SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx6ZmNxdXF0c3hrZW1vZGhiaXFoIiwiaWF0IjoxNzE4NTY0MjA4OSwiZXhwIjoyMTAxMjEwODA5fQ._KGjh1D8w216PVdnG_csbsA015twT9erbkBAYhrGcCQ"
+  VITE_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx6ZmNxdXF0c3hrZW1vZGhiaXFoIiwiaWF0IjoxNzE4NTY0MjA4OSwiZXhwIjoyMTAxMjEwODA5fQ._KGjh1D8w216PVdnG_csbsA015twT9erbkBAYhrGcCQ"
 
 [functions]
   node_bundler = "esbuild"
@@ -41,6 +41,11 @@
 
 [[headers]]
   for = "/*.css"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*"
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 
