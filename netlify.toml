@@ -1,50 +1,41 @@
 [build]
-command = "npm run build"
-publish = "dist"
-functions = "netlify/functions"
-
-[[redirects]]
-from = "/*"
-to = "/index.html"
-status = 200
+  command = "npm run build"
+  publish = "dist"
+  functions = "netlify/functions"
 
 [build.environment]
-NODE_VERSION = "20"
+  NODE_VERSION = "20"
+  VITE_SUPABASE_URL = "https://lzfcquqtsxkemodhbyqh.supabase.co"
+  VITE_SUPABASE_PROJECT_ID = "lzfcquqtsxkemodhbyqh"
+  VITE_SUPABASE_PUBLISHABLE_KEY = "${SUPABASE_PUBLISHABLE_KEY}"
+  VITE_SUPABASE_ANON_KEY = "${SUPABASE_ANON_KEY}"
 
 [functions]
-directory = "netlify/functions"
-node_bundler = "esbuild"
+  node_bundler = "esbuild"
 
-# Backend — these are public anon-key values safe to embed in the client bundle.
-# Points at the live backend that holds the products, accounts and orders —
-# the same project the app falls back to in development.
-VITE_SUPABASE_URL = "https://lzfcquqtsxkemodhbyqh.supabase.co"
-VITE_SUPABASE_PROJECT_ID = "lzfcquqtsxkemodhbyqh"
-VITE_SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx6ZmNxdXF0c3hrZW1vZGhieXFoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU2NDIwODksImV4cCI6MjEwMTIxODA4OX0._KGjh1D8w216PVdnG_csbsA015twT9erbkBAYhrGcCQ"
-VITE_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx6ZmNxdXF0c3hrZW1vZGhieXFoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU2NDIwODksImV4cCI6MjEwMTIxODA4OX0._KGjh1D8w216PVdnG_csbsA015twT9erbkBAYhrGcCQ"
-
-# No Razorpay keys here. The Key ID is served by the backend function and the
-# Key Secret exists only as a server-side secret — never in the client bundle.
-
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
 
 [[headers]]
-for = "/assets/*"
-[headers.values]
-Cache-Control = "public, max-age=31536000, immutable"
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
 
 [[headers]]
-for = "/*.js"
-[headers.values]
-Cache-Control = "public, max-age=31536000, immutable"
+  for = "/*.js"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
 
 [[headers]]
-for = "/*.css"
-[headers.values]
-Cache-Control = "public, max-age=31536000, immutable"
+  for = "/*.css"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
 
 [[headers]]
-for = "/*"
-[headers.values]
-X-Frame-Options = "DENY"
-X-Content-Type-Options = "nosniff"
-X-XSS-Protection = "1; mode=block"
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    X-XSS-Protection = "1; mode=block"
