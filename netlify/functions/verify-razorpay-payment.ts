@@ -1,4 +1,4 @@
-import { json, preflight, type FunctionEvent } from "./_shared/payment.js";
+import { json, preflight, type FunctionEvent } from "./_shared/payment";
 
 const env = (name: string) => process.env[name]?.trim() ?? "";
 
