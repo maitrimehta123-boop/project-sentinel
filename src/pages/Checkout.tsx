@@ -275,6 +275,19 @@ const Checkout = () => {
     try {
       // 1. Server creates the order and validates the amount from the database.
       let session = pendingSession;
+      // Safety on retry: if the earlier attempt actually succeeded, never charge again.
+      if (session) {
+        const { data: existing } = await supabase
+          .from("orders")
+          .select("payment_status, order_number, payment_id")
+          .eq("id", session.order_id)
+          .maybeSingle();
+        if (existing?.payment_status === "paid") {
+          pendingSessionRef.current = session;
+          finishConfirmed(existing.order_number ?? session.order_number, existing.payment_id ?? null);
+          return;
+        }
+      }
       if (!session) {
         const data = await callPaymentFunction<PaySession>("create-razorpay-order", {
           items: cartItems.map((i) => ({
@@ -291,8 +304,11 @@ const Checkout = () => {
           pincode: form.pincode.trim(),
           notes: form.notes.trim() || null,
         });
-        if (!data.razorpay_order_id || data.amount !== Math.round(total * 100)) {
-          throw new Error("The payment server returned an invalid order amount.");
+        if (!data.razorpay_order_id || !data.amount) {
+          throw new Error("Could not start the payment. Please try again.");
+        }
+        if (data.amount !== Math.round(total * 100)) {
+          throw new Error("Your order total has changed. Please review your cart and try again.");
         }
         session = data as PaySession;
         setPendingSession(session);
